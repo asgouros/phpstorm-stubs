@@ -4,7 +4,7 @@
  * Gathered from https://docs.couchbase.com/sdk-api/couchbase-php-client-2.3.0/index.html
  * Maintainer: sergey@couchbase.com
  *
- * https://github.com/couchbase/php-couchbase/tree/master/api
+ * https://github.com/couchbase/php-couchbase/tree/v2.6.1/api
  */
 
 /**
@@ -343,6 +343,7 @@ namespace Couchbase {
          * @see \Couchbase\Authenticator
          * @see \Couchbase\ClassicAuthenticator
          * @see \Couchbase\PasswordAuthenticator
+         * @see \Couchbase\CertAuthenticator
          */
         public function authenticate($authenticator) {}
 
@@ -1203,7 +1204,7 @@ namespace Couchbase {
          *
          * @param string $id ID of the document
          * @param mixed $value value to look for
-         * @return bool true if the list contains the value
+         * @reuturn bool true if the list contains the value
          *
          * @see https://developer.couchbase.com/documentation/server/current/sdk/php/datastructures.html
          *   More details on Data Structures
@@ -1432,6 +1433,62 @@ namespace Couchbase {
          *   will be thrown unless this is set to true.
          */
         public function dropN1qlIndex($name, $ignoreIfNotExist = false) {}
+
+
+        /**
+         * Returns index manager for Full Text Search service.
+         *
+         * @return \Couchbase\SearchIndexManager
+         */
+        public function searchIndexManager();
+    }
+
+    /**
+     * Interface for working with Full Text Search indexes.
+     */
+    class SearchIndexManager {
+        /** @ignore */
+        final private function __construct() {}
+
+        /**
+         * Returns list of currently defined search indexes.
+         *
+         * @return array of index definitions
+         */
+        public function listIndexDefinitions();
+
+        /**
+         * Retrieves search index definition by its name.
+         *
+         * @param string $name index name
+         *
+         * @return array representing index
+         */
+        public function getIndexDefinition($name);
+
+        /**
+         * Retrieves number of the documents currently covered by the index
+         *
+         * @param string $name index name
+         *
+         * @return int
+         */
+        public function getIndexDocumentsCount($name);
+
+        /**
+         * Creates search index with specified name and definition
+         *
+         * @param string $name index name
+         * @param string $definition JSON-encoded index definition
+         */
+        public function createIndex($name, $definition);
+
+        /**
+         * Deletes search index by its name.
+         *
+         * @param string $name index name
+         */
+        public function deleteIndex($name);
     }
 
     /**
@@ -1440,6 +1497,7 @@ namespace Couchbase {
      * @see \Couchbase\Cluster::authenticate()
      * @see \Couchbase\ClassicAuthenticator
      * @see \Couchbase\PasswordAuthenticator
+     * @see \Couchbase\CertAuthenticator
      */
     interface Authenticator {}
 
@@ -1498,6 +1556,18 @@ namespace Couchbase {
          * @return \Couchbase\PasswordAuthenticator
          */
         public function password($password) {}
+    }
+
+    /**
+     * Authenticator for Client Certificate authentication feature of Couchbase Server 5+.
+     *
+     * This authenticator does not have any attributes, but ensures that
+     * "certpath" and "keypath" options specified in the connection string
+     *
+     * @see \Couchbase\Cluster::authenticate()
+     * @see \Couchbase\Authenticator
+     */
+    class CertAuthenticator implements Authenticator {
     }
 
     /**
@@ -1693,7 +1763,7 @@ namespace Couchbase {
          * @param bool $group
          * @return ViewQuery
          *
-         * @see \Couchbase\ViewQuery::groupLevel
+         * @see \Couchbase\ViewQuery#groupLevel
          */
         public function group($group) {}
 
@@ -1707,7 +1777,7 @@ namespace Couchbase {
          * @param int $groupLevel the number of elements in the keys to use
          * @return ViewQuery
          *
-         * @see \Couchbase\ViewQuery::group
+         * @see \Couchbase\ViewQuery#group
          */
         public function groupLevel($groupLevel) {}
 
@@ -1830,8 +1900,8 @@ namespace Couchbase {
          * @param array $bbox bounding box coordinates expressed as a list of numeric values
          * @return SpatialViewQuery
          *
-         * @see \Couchbase\SpatialViewQuery::startRange()
-         * @see \Couchbase\SpatialViewQuery::endRange()
+         * @see \Couchbase\SpatialViewQuery#startRange()
+         * @see \Couchbase\SpatialViewQuery#endRange()
          */
         public function bbox($bbox) {}
 
@@ -1986,6 +2056,20 @@ namespace Couchbase {
          * @example examples/api/couchbase.N1qlQuery.namedParams.php
          */
         public function namedParams($params) {}
+
+        /**
+         * Specify custom parameter for query
+         *
+         * This function exists as escape hatch for cases when the Server has
+         * implemented some new query feature, while the SDK hasn't yet exposed
+         * the API on query object yet. The key must be a string, and param is
+         * JSON-serializable object.
+         *
+         * @param string $key
+         * @param mixed $param
+         * @return AnalyticsQuery
+         */
+        public function rawParam($key, $value) {}
 
         /**
          * Specifies the consistency level for this query
@@ -2435,7 +2519,7 @@ namespace Couchbase {
         /**
          * Change the expiry of the enclosing document as part of the mutation.
          *
-         * @param mixed $expiry the new expiry to apply (or 0 to avoid changing the expiry)
+         * @param expiry the new expiry to apply (or 0 to avoid changing the expiry)
          * @return MutateInBuilder
          */
         public function withExpiry($expiry) {}
@@ -2736,7 +2820,7 @@ namespace Couchbase {
          * If no sort is provided, it is equal to sort("-_score"), since the server will sort it by score in descending
          * order.
          *
-         * @param mixed $sort the fields that should take part in the sorting.
+         * @param sort the fields that should take part in the sorting.
          * @return SearchQuery
          */
         public function sort(...$sort) {}
@@ -3570,7 +3654,7 @@ namespace Couchbase {
         /**
          * Set type of the field
          *
-         * @param string $type the type
+         * @param string type the type
          *
          * @see SearchSortField::TYPE_AUTO
          * @see SearchSortField::TYPE_STRING
@@ -3582,7 +3666,7 @@ namespace Couchbase {
         /**
          * Set mode of the sort
          *
-         * @param string $mode the mode
+         * @param string mode the mode
          *
          * @see SearchSortField::MODE_MIN
          * @see SearchSortField::MODE_MAX
@@ -3592,7 +3676,7 @@ namespace Couchbase {
         /**
          * Set where the hits with missing field will be inserted
          *
-         * @param string $missing strategy for hits with missing fields
+         * @param string missing strategy for hits with missing fields
          *
          * @see SearchSortField::MISSING_FIRST
          * @see SearchSortField::MISSING_LAST
@@ -3645,6 +3729,50 @@ namespace Couchbase {
          * @example examples/api/couchbase.AnalyticsQuery.php
          */
         public static function fromString($statement) {}
+
+        /**
+         * Specify array of positional parameters
+         *
+         * Previously specified positional parameters will be replaced.
+         * Note: carefully choose type of quotes for the query string, because PHP also uses `$`
+         * (dollar sign) for variable interpolation. If you are using double quotes, make sure
+         * that N1QL parameters properly escaped.
+         *
+         * @param array $params
+         * @return AnalyticsQuery
+         *
+         * @example examples/api/couchbase.AnalyticsQuery.php
+         */
+        public function positionalParams($params) {}
+
+        /**
+         * Specify associative array of named parameters
+         *
+         * The supplied array of key/value pairs will be merged with already existing named parameters.
+         * Note: carefully choose type of quotes for the query string, because PHP also uses `$`
+         * (dollar sign) for variable interpolation. If you are using double quotes, make sure
+         * that N1QL parameters properly escaped.
+         *
+         * @param array $params
+         * @return AnalyticsQuery
+         *
+         * @example examples/api/couchbase.AnalyticsQuery.php
+         */
+        public function namedParams($params) {}
+
+        /**
+         * Specify custom parameter for query
+         *
+         * This function exists as escape hatch for cases when the Server has
+         * implemented some new query feature, while the SDK hasn't yet exposed
+         * the API on query object yet. The key must be a string, and param is
+         * JSON-serializable object.
+         *
+         * @param string $key
+         * @param mixed $param
+         * @return AnalyticsQuery
+         */
+        public function rawParam($key, $value) {}
     }
 
 }
